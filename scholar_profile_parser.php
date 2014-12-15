@@ -2,7 +2,7 @@
 
 class ScholarProfileParser{
 
-	var $dom;
+	public $dom;
 
 	public function ScholarProfileParser($filename=""){
 		if($filename){
@@ -13,34 +13,44 @@ class ScholarProfileParser{
 	public function readFile($filename){
 		// DOM to store html in. This stores the HTML page as a traversable tree, which can be queried by XPath
 		$this->dom = new DOMDocument();
-		$this->dom->loadHTML($filename);			
+		$html = file_get_contents($filename); 
+		@$this->dom->loadHTML($html);			
 	}
 
-	public function parsePublications(){
+	public function parsePublications($needs_year=true){
 		// XPath object to query DOM with
 		$xpath = new DOMXPath($this->dom);
-		$publications = $xpath->query('//table[@id="gsc_a_t"]'); //tbody[@id="gsc_a_b"]/tr[@class="gsc_a_tr"]');
+		$publications = $xpath->query('//table[@id="gsc_a_t"]/tbody[@id="gsc_a_b"]/tr[@class="gsc_a_tr"]');
+		$parsed_publications = array();
 
-		foreach ($publications as $publication){
-			echo $publication->nodeValue;
+		foreach ($publications as $publication){			
 			$fields = $publication->childNodes;
 			foreach($fields as $cell){
 				switch($cell->getAttribute("class")){
 					case "gsc_a_t": // classname used for publication data (title, author, journal)
-						$title_info = process_title($cell);
+						$title_info = $this->process_title($cell);
 						break;
 					case "gsc_a_c": // classname used for citation data (no. of citations)
-						$citation_info = process_citations($cell);
+						$cit = $cell->nodeValue;
+						if(is_numeric($cit)){
+							$citations = array("citations" => $cell->nodeValue);
+						}else{
+							$citations = array();
+						}						
 						break;
 					case "gsc_a_y": // classname_used for year of publication
-						$year_of_pub = process_year($cell);
+						$year = array("year" => $cell->nodeValue);
 						break;
 				}								
 			}
-			echo "<pre>";
-			print_r($title_info);
-			echo "</pre>";
+
+			$total = array_merge($title_info, $citations, $year); 
+
+			if(!$needs_year || $year["year"]){
+				$parsed_publications[] = $total;
+			}
 		}
+		return $parsed_publications;
 	}
 
 	private function process_title($cell){
@@ -55,7 +65,9 @@ class ScholarProfileParser{
 					break;
 				case "gs_gray":
 					if(isset($processed_info["authors"])){
-						$processed_info["journal"] = $node->nodeValue;						
+						$processed_info["journal"] = $node->nodeValue;
+						// Remove year notation at end of journal indication
+						$processed_info["journal"] = substr($processed_info["journal"], 0, strrpos($processed_info["journal"], ","));					
 					}else{
 						$processed_info["authors"] = $node->nodeValue;
 					}
@@ -64,18 +76,12 @@ class ScholarProfileParser{
 		}
 		return $processed_info;
 	}
-
-	private function process_citations($cell){
-
-	}
-
-	private function process_year($cell){
-
-	}		
 }
 
 $parser = new ScholarProfileParser("Daniel Schreij - Google Scholar Citations.html");
-$parser->parsePublications();
 
+echo "<pre>";
+print_r($parser->parsePublications());
+echo "</pre>";
 
 ?>
