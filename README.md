@@ -27,4 +27,6 @@ $parser->print_parsed_data_raw();   //Basic output as stored in JSON
 echo $parser->format_publications_in_APA();  //Formatted as HTML table
 ```
 
-##Class Documentation
+##API Documentation
+
+Soon to follow once I figure out how to output nicely formatted markdown documentation with doxygen. For now, the documentation can be found in the doc/html folder inside the repository.
