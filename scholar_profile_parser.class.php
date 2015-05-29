@@ -1,15 +1,36 @@
 <?php
-
+/*!
+ * \brief 		Parser of Google Scholar user profile pages
+ * \details		This class parses publications and stats from Google Scholar user pages. The retrieved data can be exported to json.
+ * \author 		Daniel Schreij
+ * \version 	1.0
+ * \date 		2015
+ * \copyright 	GNU Public License
+ */
 class ScholarProfileParser{
+/**
+ * holds the HTML DOM object
+ * @var DOMDocument
+ */
+	private $dom;
 
-	var $dom;						// will hold the HTML DOM
-	var $xpath;						// will contain the xpath querier for the DOM
-	var $parsed_data = array();		// global var which holds all the data parsed from the DOM
+/**
+ * The XPath querier for the DOM
+ * @var DOMXPath
+ */
+	private $xpath;
 
-	/**
-	* Constructor
-	**/
+/**
+ * Internal structure containing the data returned by Google Scholar
+ * @var array
+ */
+	private $parsed_data = array();		// global var which holds all the data parsed from the DOM
 
+/**
+ * Constructor
+ * @param string $scholar_user_id The ID string with which to identify the Scholar User Profile (e.g. Pm3O_58AAAAJ)
+ * @param string $sort_by         The variable to order the publications by (default='year'; if 'false' they are orderd by citation count (Descending))
+ */
 	public function ScholarProfileParser($scholar_user_id="", $sort_by="year"){
 		if(!in_array($sort_by, array("year","citations"))){
 			throw new InvalidArgumentException("sort_by should be 'year' or 'citations'");
@@ -20,10 +41,11 @@ class ScholarProfileParser{
 		}
 	}
 
-	/**
-	* Private functions
-	**/
-
+/**
+ * Parses the data of a single publication entry
+ * @param  DOMNode $cell The DOMNode instance describing the publication
+ * @return array       The data parsed from the DOM node
+ */
 	private function process_title($cell){
 		$raw_info = $cell->childNodes;
 		$processed_info = array(); 
@@ -48,6 +70,13 @@ class ScholarProfileParser{
 		return $processed_info;
 	}
 
+/**
+ * Replaces the last occurence of the specified text in a string. If the occurence cannot be found, the original string is returned.
+ * @param  string $search  The 'needle': the part of the string (occurence) to replace
+ * @param  string $replace What to replace the occurence with
+ * @param  string $str     The 'haystack': the string to search through
+ * @return string          The string in which the occurrence is replaced by the supplied text
+ */
 	private function str_replace_last( $search , $replace , $str ) {
         if( ( $pos = strrpos( $str , $search ) ) !== false ) {
             $search_length  = strlen( $search );
@@ -56,9 +85,13 @@ class ScholarProfileParser{
         return $str;
     }
 
-	/**
-	* Public functions
-	**/
+/**
+ * Sets the DOM object of the class to the html directly retrieved from Google Scholar. The function returns the plain HTML. The
+ * DOM object can be accessed by $<your_variable>->dom.
+ * @param  string $id      The ID string of the Google Scholar userprofile to parse
+ * @param  string $sort_by The variable to sort the parsed data by ("year" or false->number of citations)
+ * @return string          The retrieved HTML. The Dom object is automatically set by this funcion overwriting its previous contents
+ */
 	public function read_html_from_scholar_profile($id, $sort_by="year"){		
 		$url = "http://scholar.google.nl/citations?hl=en&user=" . $id . "&view_op=list_works";	
 		if($sort_by == "year"){
@@ -74,6 +107,12 @@ class ScholarProfileParser{
 		return $html;
 	}
 
+/**
+ * Generates a DOM object by reading the html from the specified file. The function returns the plain HTML. The
+ * DOM object can be accessed by $<your_variable>->dom.
+ * @param  string $filename The file to read
+ * @return string         The HTML contained by the file
+ */
 	public function read_html_from_file($filename){
 		// DOM to store html in. This stores the HTML page as a traversable tree, which can be queried by XPath
 		$this->dom = new DOMDocument();
@@ -84,11 +123,21 @@ class ScholarProfileParser{
 		return $html;	
 	}
 
+/**
+ * Saves the current DOM object to a .json file
+ * @param  string $filename The destination file path and name to save to.
+ * @return void
+ */
 	public function save_to_json($filename){
 		$json = json_encode($this->parsed_data);
 		file_put_contents($filename, $json);
 	}
 
+/**
+ * Read data from a json file and store it in the parsed_data variable
+ * @param  string $filename The path to the file
+ * @return void
+ */
 	public function read_json($filename){
 		try{
 			$json = file_get_contents($filename);
@@ -99,6 +148,11 @@ class ScholarProfileParser{
 		$this->parsed_data = json_decode($json, true);
 	}
 
+/**
+ * Parses publications from the $this->dom variable. Stored them in the $this->parsed_data variable wit the key 'publications'
+ * @param  boolean $needs_year If true, publications not having a date will be ommitted (to prevent contamination of the list by things other than journal articles, books and conference posters)
+ * @return array              The publications parsed from the DOM
+ */
 	public function parse_publications($needs_year=true){
 		
 		// Fingers crossed that Google will not keep changing this...
@@ -145,6 +199,10 @@ class ScholarProfileParser{
 		return $parsed_publications;
 	}
 
+/**
+ * Parses the stats of the scholar profile user (Citations, H-Index, and i10 index)
+ * @return string The HTML in which the stats data is displayed in a table
+ */
 	public function parse_stats(){
 		// Get the table containing citation indices and stuff
 		$stats_table = $this->xpath->query('//div[@class="gsc_rsb_s"]/table[@id="gsc_rsb_st"]');
@@ -155,13 +213,23 @@ class ScholarProfileParser{
 		return $this->parsed_data["stats"];
 	}
 
+/**
+ * Prints the data currently in the parsed_data variable (convenience function)
+ * @return void
+ */
 	public function print_parsed_data_raw(){
 		echo "<pre>";
 		print_r($this->parsed_data);
 		echo "</pre>";
 	}
 
-	public function format_publications_in_APA($table_header=true){
+/**
+ * Formats the contents of $this->parsed_data["publications"] to an HTML table containing publications in APA format.
+ * @param  boolean $show_citations if true, then an extra column showing the citations of each article is added
+ * @param  boolean $table_header   if true, the table is given a header displaying title (in this case only for citations)
+ * @return string                  The HTML code describing the table in which each publicaion is shown in a row
+ */
+	public function format_publications_in_APA($show_citations=true, $table_header=true){
 		// First check if publication data is already present, and exit otherwise.
 		if(!isset($this->parsed_data["publications"])){
 			echo "<p><b>Error:</b>no publication data present. call parse functions first</p>";
@@ -170,7 +238,11 @@ class ScholarProfileParser{
 		$res = "<table class='publications-table'>";
 
 		if($table_header){
-			$res .= "<tr><th></th><th>Citations</th></tr>";
+			$res .= "<tr><th></th>";
+			if($show_citations){
+				$res .= "<th>Citations</th>";
+			}
+			$res .= "</tr>";
 		}
 
 		$pubs = $this->parsed_data["publications"];
@@ -184,20 +256,34 @@ class ScholarProfileParser{
 			$formatted_title = "<a href='" . $pub["url"] . "'>" . $pub["title"] . "</a>";
 
 			$apa_str = $pub_authors . " (" . $pub["year"] . ") " . $formatted_title . ". " . $pub["journal"];
-			if(isset($pub["citations"])){
-				$citation_count = "<a href='" . $pub["citations"]["url"] . "'>" . $pub["citations"]["amount"] . "</a>";
-			}else{
-				$citation_count = "";
+			
+			$citation_cell = "";
+			if($show_citations){
+				if(isset($pub["citations"])){
+					$citation_count = "<a href='" . $pub["citations"]["url"] . "'>" . $pub["citations"]["amount"] . "</a>";
+				}else{
+					$citation_count = "";
+				}
+				$citation_cell = "<td class='citation-cell'>" . $citation_count . "</td>";
 			}
-			$res .= "<tr><td class='title-cell'>" . $apa_str . "</td><td class='citation-cell'>" . $citation_count . "</td></tr>";
+			$res .= "<tr><td class='title-cell'>" . $apa_str . "</td>" . $citation_cell . "</tr>";
 		}
 		
 		$res .= "</table>";
 		return $res;
 	}
 
+/**
+ * Returns the HTML currently in the parsed_data["stats"] variable
+ * @return string HTML code displaying the stats in a table.
+ */
 	public function get_stats(){
-		return $this->parsed_data["stats"];
+		if(isset($this->parsed_data["stats"])){
+			return $this->parsed_data["stats"];
+		}else{
+			echo "<p>Warning: stats not yet parsed</p>";
+			return "";
+		}
 	}
 }
 
