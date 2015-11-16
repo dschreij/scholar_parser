@@ -1,0 +1,7 @@
+cache/*
+scholar_profile_parser.doxyconfig
+doc/output.md
+bin
+vendor
+composer.lock
+test.php

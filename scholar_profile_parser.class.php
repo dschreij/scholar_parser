@@ -7,6 +7,13 @@
  * \date 		2015
  * \copyright 	GNU Public License
  */
+
+// Load composer namespaces
+require_once __DIR__.'/vendor/autoload.php';
+
+// PHP PhantomJS to parse Googles JS response
+use JonnyW\PhantomJs\Client;
+
 class ScholarProfileParser{
 /**
  * holds the HTML DOM object
@@ -35,7 +42,11 @@ class ScholarProfileParser{
 		if(!in_array($sort_by, array("year","citations"))){
 			throw new InvalidArgumentException("sort_by should be 'year' or 'citations'");
 		}
+		// Create an instance for communicating with PhantomJS
+		$this->phantomJsClient = Client::getInstance();
+		$this->phantomJsClient->addOption('--config=phantomconfig.json');
 
+		// If scholar user_id has been passed, load the profile from Scholar
 		if($scholar_user_id){
 			$this->read_html_from_scholar_profile($scholar_user_id, $sort_by);
 		}
@@ -93,14 +104,28 @@ class ScholarProfileParser{
  * @return string          The retrieved HTML. The Dom object is automatically set by this funcion overwriting its previous contents
  */
 	public function read_html_from_scholar_profile($id, $sort_by="year"){		
-		$url = "http://scholar.google.nl/citations?hl=en&user=" . $id . "&view_op=list_works";	
+		$url = "http://scholar.google.nl/citations?hl=en&user=" . $id . "&view_op=list_works";
+		
 		if($sort_by == "year"){
 			$url .= "&sortby=pubdate";
 		}
 
+		// Create a PhantomJS request and response object
+		$request = $this->phantomJsClient->getMessageFactory()->createRequest($url, 'GET');
+		$response = $this->phantomJsClient->getMessageFactory()->createResponse();
+
+		// Send the request
+		$this->phantomJsClient->send($request, $response);
+		
+		if($response->getStatus() === 200) {
+		    // Dump the requested page content
+		    $html = $response->getContent();
+		}else{
+			throw new Exception("Invalid response code from Google Scholar. Received " . $response->geStatus());
+		}
+
 		// DOM to store html in. This stores the HTML page as a traversable tree, which can be queried by XPath
 		$this->dom = new DOMDocument();
-		$html = file_get_contents($url); 
 		@$this->dom->loadHTML($html);
 		// XPath object to query DOM with
 		$this->xpath = new DOMXPath($this->dom);

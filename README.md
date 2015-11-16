@@ -4,6 +4,12 @@
 
 This class parses a profile page from Google Scholar for publication data and scientist stats. The page can be read directly from Google Scholar by supplying the user's profile ID, or by passing a HTML file saved from Scholar to the class.
 
+##Installation
+This module requires PHP-PhantomJS which can be found at http://jonnnnyw.github.io/php-phantomjs/. For easy installation, I recommend using Composer (https://getcomposer.org/) and use the included composer.json file by executing the command
+```
+php composer.phar install
+```
+
 ##Example usage
 Below is a very basic example. For a more elaborate one see the example.php file which uses a basic caching mechanism to not query Scholar with each page view request
 
