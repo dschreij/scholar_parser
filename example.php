@@ -38,10 +38,17 @@ if(!file_exists($json_file)){
 // If the json file needs to be refreshed, retrieve and parse the new data from Google Scholar
 if($refresh_json_file == true){
 	echo "<p>Reading from online profile page</p>\n";	
-	$parser->read_html_from_scholar_profile($scholar_id);
+	$parser->read_html_from_scholar_profile($profile_id);
 	$parser->parse_publications();
-	$parser->parse_stats();	
-	$parser->save_to_json($json_file);
+	$parser->parse_stats();
+
+	if(empty($parser->parsed_data) or empty($parser->parsed_data["publications"]) or empty($parser->parsed_data["stats"])){
+		echo "Could not retrieve most recent publication data";
+		echo "<p>Reading from local cache</p>\n";
+		$parser->read_json($json_file);
+	}else{
+		$parser->save_to_json($json_file);
+	}
 // Otherwise read the data already stored in the json file
 }else{
 	echo "<p>Reading from local cache</p>\n";

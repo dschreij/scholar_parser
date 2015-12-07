@@ -24,7 +24,7 @@ class ScholarProfileParser{
  * Internal structure containing the data returned by Google Scholar
  * @var array
  */
-	private $parsed_data = array();		// global var which holds all the data parsed from the DOM
+	public $parsed_data = array();		// global var which holds all the data parsed from the DOM
 
 /**
  * Constructor
