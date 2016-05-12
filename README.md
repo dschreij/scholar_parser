@@ -16,7 +16,7 @@ $parser = new ScholarProfileParser();
 $profile_id = "Pm3O_58AAAAJ&hl";
 
 // Read the html from Scholar into a DOM object
-$parser->read_html_from_scholar_profile($scholar_id);
+$parser->read_html_from_scholar_profile($profile_id);
 // Parse publication data from the DOM
 $parser->parse_publications();
 // Parse stats from the DOM (H-Index, citation count, i10 index)
