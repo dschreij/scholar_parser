@@ -1,4 +1,8 @@
 <?php
+
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+
 // The amount of days after which to refresh the json file
 define("JSON_EXPIRY_DAYS",3);
 // Our workhorse: the ScholarProfileParser class
@@ -38,7 +42,7 @@ if(!file_exists($json_file)){
 // If the json file needs to be refreshed, retrieve and parse the new data from Google Scholar
 if($refresh_json_file == true){
 	echo "<p>Reading from online profile page</p>\n";	
-	$parser->read_html_from_scholar_profile($scholar_id);
+	$parser->read_html_from_scholar_profile($profile_id);
 	$parser->parse_publications();
 	$parser->parse_stats();	
 	$parser->save_to_json($json_file);

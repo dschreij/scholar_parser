@@ -3,7 +3,7 @@
  * \brief 		Parser of Google Scholar user profile pages
  * \details		This class parses publications and stats from Google Scholar user pages. The retrieved data can be exported to json.
  * \author 		Daniel Schreij
- * \version 	1.0
+ * \version 	1.1
  * \date 		2015
  * \copyright 	GNU Public License
  */
@@ -38,7 +38,7 @@ class ScholarProfileParser{
  * @param string $scholar_user_id The ID string with which to identify the Scholar User Profile (e.g. Pm3O_58AAAAJ)
  * @param string $sort_by         The variable to order the publications by (default='year'; if 'false' they are orderd by citation count (Descending))
  */
-	public function ScholarProfileParser($scholar_user_id="", $sort_by="year"){
+	public function __construct($scholar_user_id="", $sort_by="year"){
 		if(!in_array($sort_by, array("year","citations"))){
 			throw new InvalidArgumentException("sort_by should be 'year' or 'citations'");
 		}
@@ -64,7 +64,7 @@ class ScholarProfileParser{
 		foreach($raw_info as $node){
 			switch($node->getAttribute("class")){
 				case "gsc_a_at":	// The title is specified as a link
-					$processed_info["url"] = "http://scholar.google.com/" . $node->getAttribute("href"); //Get the link
+					$processed_info["url"] = "http://scholar.google.com/" . $node->getAttribute("data-href"); //Get the link
 					$processed_info["title"] = $node->nodeValue;
 					break;
 				case "gs_gray":
@@ -230,9 +230,13 @@ class ScholarProfileParser{
  */
 	public function parse_stats(){
 		// Get the table containing citation indices and stuff
-		$stats_table = $this->xpath->query('//div[@class="gsc_rsb_s"]/table[@id="gsc_rsb_st"]');
+		$stats_table = $this->xpath->query('//table[@id="gsc_rsb_st"]');
 		$temp_dom = new DOMDocument();
-		foreach($stats_table as $n) $temp_dom->appendChild($temp_dom->importNode($n,true));
+		foreach($stats_table as $n) {
+			$temp_dom->appendChild(
+				$temp_dom->importNode($n, true)
+			);
+		}
 		// Just save the HTML table (not much to change about it)
 		$this->parsed_data["stats"] = $temp_dom->saveHTML();
 		return $this->parsed_data["stats"];
