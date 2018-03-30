@@ -5,3 +5,4 @@ bin
 vendor
 composer.lock
 test.php
+.vscode

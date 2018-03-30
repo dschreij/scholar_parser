@@ -282,7 +282,7 @@ class ScholarProfileParser{
 			$pub_authors = str_replace("Ã´","&ocirc;",$pub_authors);
 
 			// Make the title a link that corresponds to the article on Google Scholar
-			$formatted_title = "<a href='" . $pub["url"] . "'>" . $pub["title"] . "</a>";
+			$formatted_title = "<a class='pub-link' href='" . $pub["url"] . "'>" . $pub["title"] . "</a>";
 
 			$apa_str = $pub_authors . " (" . $pub["year"] . ") " . $formatted_title . ". " . $pub["journal"];
 			
